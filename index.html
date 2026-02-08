@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMP 4531 IoT Lab</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="app-container">
+
+        <header class="glass-bar">
+            <div class="brand">
+                <div class="logo-icon">COMP 4531</div>
+                <span>IoT and Smart Sensing</span>
+            </div>
+
+            <nav class="segmented-control">
+                <button class="nav-btn active" onclick="setTab('home')">Connect</button>
+                <button class="nav-btn" onclick="setTab('imu')">IMU Lab</button>
+                <button class="nav-btn" onclick="setTab('lora')">LoRa</button>
+                <button class="nav-btn" onclick="setTab('audio')">Audio</button>
+            </nav>
+        </header>
+
+        <section id="view-home" class="view-section active">
+            <div class="card center-card">
+                <h2>Connection Setup</h2>
+                <p class="subtitle">Enter your group number to pair with your device.</p>
+
+                <div class="input-group">
+                    <label>Group ID</label>
+                    <input type="number" id="gid" value="" min="1" max="30">
+                </div>
+
+                <div class="action-row">
+                    <button id="conBtn" class="btn-primary" onclick="connect()">Connect</button>
+                    <button id="disBtn" class="btn-destructive" onclick="disconnect()" disabled>Disconnect</button>
+                </div>
+
+                <div class="status-indicator">
+                    <div id="statusDot" class="dot"></div>
+                    <span id="connStatus">Disconnected</span>
+                </div>
+
+                <div class="terminal-window">
+                    <div id="terminal">System Ready...</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-imu" class="view-section">
+            <aside class="glass-sidebar">
+                <div class="sidebar-header">
+                    <div class="sub-nav">
+                        <button class="sub-btn active" onclick="setImuMode('3d')">3D View</button>
+                        <button class="sub-btn" onclick="setImuMode('steps')">Fitness</button>
+                    </div>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="label">Signal Strength</span>
+                        <span class="value" id="rssi">- dBm</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Data Rate</span>
+                        <span class="value" id="pps">0 PPS</span>
+                    </div>
+                    <div class="stat-item highlight">
+                        <span class="label">Steps</span>
+                        <span class="value" id="stepSide">0</span>
+                    </div>
+                </div>
+
+                <div class="sensor-data">
+                    <div class="sensor-row">
+                        <span class="sensor-label">ACCEL</span>
+                        <span class="sensor-val" id="accVal">0.00, 0.00, 0.00</span>
+                    </div>
+                    <div class="sensor-row">
+                        <span class="sensor-label">GYRO</span>
+                        <span class="sensor-val" id="gyroVal">0.00, 0.00, 0.00</span>
+                    </div>
+                </div>
+
+                <div class="control-actions">
+                    <button id="startBtn" class="btn-secondary small" onclick="toggleStream()">Start Stream</button>
+                    <button class="btn-secondary small" onclick="send('STOP'); resetStreamBtn();">Stop</button>
+                </div>
+
+                <div class="toggle-row">
+                    <label class="ios-switch">
+                        <input type="checkbox" id="smoothCheck" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span>Smooth Motion</span>
+                </div>
+            </aside>
+
+            <main class="imu-main">
+                <div id="imu-content"></div>
+
+                <div id="graph-layer">
+                    <div class="graph-card">
+                        <div class="graph-header">
+                            <span>Accelerometer</span>
+                            <div class="legend">
+                                <span class="dot x"></span>X
+                                <span class="dot y"></span>Y
+                                <span class="dot z"></span>Z
+                            </div>
+                        </div>
+                        <canvas id="accCanvas"></canvas>
+                    </div>
+                    <div class="graph-card">
+                        <div class="graph-header">
+                            <span>Gyroscope</span>
+                        </div>
+                        <canvas id="gyroCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div id="pedometer-view">
+                    <div class="ring-container">
+                        <svg class="progress-ring" width="260" height="260">
+                            <circle class="ring-bg" stroke-width="20" r="110" cx="130" cy="130" />
+                            <circle class="ring-val" stroke-width="20" r="110" cx="130" cy="130" />
+                        </svg>
+                        <div class="ring-content">
+                            <span class="step-big" id="stepBig">0</span>
+                            <span class="step-label">STEPS</span>
+                        </div>
+                    </div>
+                    <div class="pedometer-meta">Live Sensor Data</div>
+                </div>
+            </main>
+        </section>
+
+        <section id="view-lora" class="view-section">
+            <div class="card chat-card">
+                <div class="card-header">
+                    <h3>LoRa Messenger</h3>
+                    <span id="loraBadge" class="badge">--- MHz</span>
+                </div>
+                <div id="loraChat" class="chat-area">
+                    <div class="chat-placeholder">No messages yet...</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="loraTxt" placeholder="Send Message...">
+                    <button class="btn-send" onclick="sendLoRa()">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-audio" class="view-section">
+            <div class="card center-card audio-card">
+                <div class="waveform-icon">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <h3>Voice Memo</h3>
+                <p>Record 5 seconds of raw audio from the IoT board.</p>
+
+                <canvas id="audioCanvas"></canvas>
+                <div id="audioStatus" class="status-pill">Ready to Record</div>
+
+                <button id="recBtn" class="btn-record" onclick="recordAudio()">
+                    <div class="inner-circle"></div>
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
