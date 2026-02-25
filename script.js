@@ -22,6 +22,7 @@ let currentY = 20;
 // Dynamic 3D rotation labels
 let rotTextX, rotTextY, rotTextZ;
 
+
 // Step source selection
 let useDeviceStep = false;
 
@@ -533,7 +534,19 @@ function init3D() {
 
     addAxisArrows(board3d);
     addRotationRings(board3d);
-    addAxisLabels(scene);
+
+    const L = 3.5;
+    rotTextX = createDynamicSprite('Roll 0.0\u00B0', '#ff3b30');
+    rotTextX.position.set(0, 0, -(L + 1.0));
+    board3d.add(rotTextX);
+
+    rotTextY = createDynamicSprite('Pitch 0.0\u00B0', '#34c759');
+    rotTextY.position.set(-(L + 0.8), 0.5, 0);
+    board3d.add(rotTextY);
+
+    rotTextZ = createDynamicSprite('Yaw 0.0\u00B0', '#007aff');
+    rotTextZ.position.set(0, L + 0.8, 0);
+    board3d.add(rotTextZ);
 
     camera.position.set(0, 5, 5);
     camera.lookAt(0, 0, 0);
@@ -623,37 +636,6 @@ function addRotationRings(parent) {
     });
 }
 
-function addAxisLabels(parentScene) {
-    const ref = new THREE.Group();
-    const L = 3.5;
-
-    ref.add(makeArrow(new THREE.Vector3(0, 0, -1), 0xff3b30, L));
-    ref.add(makeArrow(new THREE.Vector3(-1, 0, 0), 0x34c759, L));
-    ref.add(makeArrow(new THREE.Vector3(0, 1, 0), 0x007aff, L));
-
-    const lx = makeTextSprite('X Roll', '#ff3b30');
-    lx.position.set(0, 0, -(L + 0.6)); ref.add(lx);
-    const ly = makeTextSprite('Y Pitch', '#34c759');
-    ly.position.set(-(L + 0.6), 0, 0); ref.add(ly);
-    const lz = makeTextSprite('Z Yaw', '#007aff');
-    lz.position.set(0, L + 0.4, 0); ref.add(lz);
-
-    ref.position.set(5.5, -2.5, 0);
-    parentScene.add(ref);
-
-    rotTextX = createDynamicSprite('Roll  0.0\u00B0', '#ff3b30');
-    rotTextX.position.set(4.5, 3.2, 0);
-    parentScene.add(rotTextX);
-
-    rotTextY = createDynamicSprite('Pitch  0.0\u00B0', '#34c759');
-    rotTextY.position.set(4.5, 2.5, 0);
-    parentScene.add(rotTextY);
-
-    rotTextZ = createDynamicSprite('Yaw  0.0\u00B0', '#007aff');
-    rotTextZ.position.set(4.5, 1.8, 0);
-    parentScene.add(rotTextZ);
-}
-
 function drawGraph(cv, data, scale) {
     if (!cv) return;
     const cx = cv.getContext('2d');
@@ -712,9 +694,9 @@ function animate() {
         const rollDeg = (tRoll * 180 / Math.PI).toFixed(1);
         const pitchDeg = (tPitch * 180 / Math.PI).toFixed(1);
         const yawDeg = (tYaw * 180 / Math.PI).toFixed(1);
-        updateSpriteText(rotTextX, 'Roll  ' + rollDeg + '\u00B0');
-        updateSpriteText(rotTextY, 'Pitch  ' + pitchDeg + '\u00B0');
-        updateSpriteText(rotTextZ, 'Yaw  ' + yawDeg + '\u00B0');
+        updateSpriteText(rotTextX, 'Roll ' + rollDeg + '\u00B0');
+        updateSpriteText(rotTextY, 'Pitch ' + pitchDeg + '\u00B0');
+        updateSpriteText(rotTextZ, 'Yaw ' + yawDeg + '\u00B0');
     }
 
     renderer.render(scene, camera);
