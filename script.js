@@ -19,6 +19,9 @@ const LERP = 0.1;
 let targetY = 20;
 let currentY = 20;
 
+// Dynamic 3D rotation labels
+let rotTextX, rotTextY, rotTextZ;
+
 // Step source selection
 let useDeviceStep = false;
 
@@ -523,14 +526,132 @@ function init3D() {
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
-    
+
     const grid = new THREE.GridHelper(30, 30, 0xdddddd, 0xeeeeee);
     grid.position.y = -3;
     scene.add(grid);
 
+    addAxisArrows(board3d);
+    addRotationRings(board3d);
+    addAxisLabels(scene);
+
     camera.position.set(0, 5, 5);
     camera.lookAt(0, 0, 0);
     animate();
+}
+
+function makeArrow(dir, color, len) {
+    const arrow = new THREE.ArrowHelper(
+        dir.normalize(), new THREE.Vector3(0, 0, 0), len, color, len * 0.18, len * 0.1
+    );
+    return arrow;
+}
+
+function addAxisArrows(parent) {
+    const L = 3.5;
+    parent.add(makeArrow(new THREE.Vector3(0, 0, -1), 0xff3b30, L)); // X — red (Roll, toward USB)
+    parent.add(makeArrow(new THREE.Vector3(-1, 0, 0), 0x34c759, L)); // Y — green (Pitch, device left)
+    parent.add(makeArrow(new THREE.Vector3(0, 1, 0), 0x007aff, L));  // Z — blue (Yaw, up)
+}
+
+function makeTextSprite(text, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = 'bold 32px Inter, sans-serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 32);
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(1.6, 0.8, 1);
+    return sprite;
+}
+
+function createDynamicSprite(text, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(2.8, 0.7, 1);
+    sprite.userData = { canvas, ctx, color, tex };
+    updateSpriteText(sprite, text);
+    return sprite;
+}
+
+function updateSpriteText(sprite, text) {
+    const { canvas, ctx, color, tex } = sprite.userData;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    tex.needsUpdate = true;
+}
+
+function addRotationRings(parent) {
+    const radius = 2.8;
+    const segments = 64;
+    const rings = [
+        { axis: 'z', color: 0xff3b30 },
+        { axis: 'x', color: 0x34c759 },
+        { axis: 'y', color: 0x007aff },
+    ];
+    rings.forEach(({ axis, color }) => {
+        const points = [];
+        for (let i = 0; i <= segments; i++) {
+            const a = (i / segments) * Math.PI * 2;
+            const c = Math.cos(a) * radius;
+            const s = Math.sin(a) * radius;
+            if (axis === 'x') points.push(new THREE.Vector3(0, c, s));
+            else if (axis === 'y') points.push(new THREE.Vector3(c, 0, s));
+            else points.push(new THREE.Vector3(c, s, 0));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineDashedMaterial({
+            color, transparent: true, opacity: 0.2,
+            dashSize: 0.3, gapSize: 0.15
+        });
+        const line = new THREE.Line(geo, mat);
+        line.computeLineDistances();
+        parent.add(line);
+    });
+}
+
+function addAxisLabels(parentScene) {
+    const ref = new THREE.Group();
+    const L = 3.5;
+
+    ref.add(makeArrow(new THREE.Vector3(0, 0, -1), 0xff3b30, L));
+    ref.add(makeArrow(new THREE.Vector3(-1, 0, 0), 0x34c759, L));
+    ref.add(makeArrow(new THREE.Vector3(0, 1, 0), 0x007aff, L));
+
+    const lx = makeTextSprite('X Roll', '#ff3b30');
+    lx.position.set(0, 0, -(L + 0.6)); ref.add(lx);
+    const ly = makeTextSprite('Y Pitch', '#34c759');
+    ly.position.set(-(L + 0.6), 0, 0); ref.add(ly);
+    const lz = makeTextSprite('Z Yaw', '#007aff');
+    lz.position.set(0, L + 0.4, 0); ref.add(lz);
+
+    ref.position.set(5.5, -2.5, 0);
+    parentScene.add(ref);
+
+    rotTextX = createDynamicSprite('Roll  0.0\u00B0', '#ff3b30');
+    rotTextX.position.set(4.5, 3.2, 0);
+    parentScene.add(rotTextX);
+
+    rotTextY = createDynamicSprite('Pitch  0.0\u00B0', '#34c759');
+    rotTextY.position.set(4.5, 2.5, 0);
+    parentScene.add(rotTextY);
+
+    rotTextZ = createDynamicSprite('Yaw  0.0\u00B0', '#007aff');
+    rotTextZ.position.set(4.5, 1.8, 0);
+    parentScene.add(rotTextZ);
 }
 
 function drawGraph(cv, data, scale) {
@@ -585,6 +706,15 @@ function animate() {
         if(targetY === 0) {
              board3d.position.y += Math.sin(Date.now() * 0.002) * 0.05;
         }
+    }
+
+    if (rotTextX) {
+        const rollDeg = (tRoll * 180 / Math.PI).toFixed(1);
+        const pitchDeg = (tPitch * 180 / Math.PI).toFixed(1);
+        const yawDeg = (tYaw * 180 / Math.PI).toFixed(1);
+        updateSpriteText(rotTextX, 'Roll  ' + rollDeg + '\u00B0');
+        updateSpriteText(rotTextY, 'Pitch  ' + pitchDeg + '\u00B0');
+        updateSpriteText(rotTextZ, 'Yaw  ' + yawDeg + '\u00B0');
     }
 
     renderer.render(scene, camera);
