@@ -466,7 +466,7 @@ function handleIMU(e) {
     gyroHist.push([gx, gy, gz]); gyroHist.shift();
 
     // 3D Orientation Math
-    tPitch = Math.atan2(ax, Math.sqrt(ay * ay + az * az));
+    tPitch = Math.atan2(-ax, Math.sqrt(ay * ay + az * az));
     tRoll = Math.atan2(ay, az);
     const gyroRad = gz;
     // Yaw sign depends on current az: face-up (az>0) → +, face-down (az<0) → -
