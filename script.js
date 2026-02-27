@@ -466,8 +466,8 @@ function handleIMU(e) {
     gyroHist.push([gx, gy, gz]); gyroHist.shift();
 
     // 3D Orientation Math
-    tPitch = -Math.atan2(-ax, Math.sqrt(ay * ay + az * az));
-    tRoll = -Math.atan2(ay, az);
+    tPitch = Math.atan2(ax, Math.sqrt(ay * ay + az * az));
+    tRoll = Math.atan2(ay, az);
     const gyroRad = gz;
     // Yaw sign depends on current az: face-up (az>0) → +, face-down (az<0) → -
     tYaw += Math.sign(az || 1) * gyroRad * dt;
@@ -515,7 +515,10 @@ function init3D() {
         const model = gltf.scene;
         model.scale.set(120, 120, 120);
         model.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-        board3d.add(model);
+        const pivot = new THREE.Group();
+        pivot.rotation.y = Math.PI;
+        pivot.add(model);
+        board3d.add(pivot);
     }, undefined, function () {
         // Fallback box if model fails to load
         const geo = new THREE.BoxGeometry(3.5, 0.2, 2);
@@ -537,11 +540,11 @@ function init3D() {
 
     const L = 3.5;
     rotTextX = createDynamicSprite('Roll 0.0\u00B0', '#ff3b30');
-    rotTextX.position.set(0, 0, -(L + 1.0));
+    rotTextX.position.set(0, 0, L + 1.0);
     board3d.add(rotTextX);
 
     rotTextY = createDynamicSprite('Pitch 0.0\u00B0', '#34c759');
-    rotTextY.position.set(-(L + 0.8), 0.5, 0);
+    rotTextY.position.set(L + 0.8, 0.5, 0);
     board3d.add(rotTextY);
 
     rotTextZ = createDynamicSprite('Yaw 0.0\u00B0', '#007aff');
@@ -562,9 +565,9 @@ function makeArrow(dir, color, len) {
 
 function addAxisArrows(parent) {
     const L = 3.5;
-    parent.add(makeArrow(new THREE.Vector3(0, 0, -1), 0xff3b30, L)); // X — red (Roll, toward USB)
-    parent.add(makeArrow(new THREE.Vector3(-1, 0, 0), 0x34c759, L)); // Y — green (Pitch, device left)
-    parent.add(makeArrow(new THREE.Vector3(0, 1, 0), 0x007aff, L));  // Z — blue (Yaw, up)
+    parent.add(makeArrow(new THREE.Vector3(0, 0, 1), 0xff3b30, L));  // X — red (Roll, toward USB)
+    parent.add(makeArrow(new THREE.Vector3(1, 0, 0), 0x34c759, L));  // Y — green (Pitch, device left)
+    parent.add(makeArrow(new THREE.Vector3(0, 1, 0), 0x007aff, L)); // Z — blue (Yaw, up)
 }
 
 function makeTextSprite(text, color) {
